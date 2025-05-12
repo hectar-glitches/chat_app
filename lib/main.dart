@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'providers/chat_provider.dart';
 import 'providers/friends_provider.dart';
 import 'providers/group_chat_provider.dart';
+import 'providers/user_provider.dart';
 import 'screens/contact_list_screen.dart';
 
 void main() {
@@ -17,6 +19,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => FriendsProvider()),
         ChangeNotifierProvider(create: (context) => GroupChatProvider()),
+        ChangeNotifierProvider(create: (context) => UserProvider()),
+        ChangeNotifierProvider(create: (context) => ChatProvider()),
       ],
       child: MaterialApp(
         title: 'Chat App',

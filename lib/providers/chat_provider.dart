@@ -164,12 +164,27 @@ class ChatProvider with ChangeNotifier {
   // Add method to get all users
   List<User> get allUsers => _users.values.toList();
 
+  // Add a user to the users map if they don't exist already
+  void addUserIfNeeded(User user) {
+    if (!_users.containsKey(user.id)) {
+      _users[user.id] = user;
+
+      // Initialize messages for this user if needed
+      if (_currentChatUserId == user.id &&
+          (_messages == null || _messages!.isEmpty)) {
+        _messages = [];
+      }
+    }
+  }
+
   // Set current chat user
   void setCurrentChatUser(String userId) {
-    if (_users.containsKey(userId)) {
-      _currentChatUserId = userId;
-      notifyListeners();
+    _currentChatUserId = userId;
+    // Initialize messages for this user
+    if (_messages == null || _messages!.isEmpty) {
+      _messages = [];
     }
+    notifyListeners();
   }
 
   // Get user by ID

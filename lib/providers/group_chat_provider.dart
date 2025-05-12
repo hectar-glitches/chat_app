@@ -16,13 +16,14 @@ class GroupChatProvider with ChangeNotifier {
     _questionThreads = [
       QuestionThread(
         id: '1',
-        subject: 'Biology',
+        subject: 'Anatomists',
         question: 'How do cells maintain homeostasis during osmotic stress?',
         participants: [
           User(
             id: '1',
             name: 'Emma Johnson',
-            avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
+            avatarUrl:
+                'https://i.pravatar.cc/150?img=5',
             isOnline: true,
             achievements: ['biology expert'],
             commonGroups: ['Biology 101'],
@@ -53,7 +54,7 @@ class GroupChatProvider with ChangeNotifier {
       ),
       QuestionThread(
         id: '2',
-        subject: 'Chemistry',
+        subject: 'Alchemists',
         question:
             'Can someone explain the difference between SN1 and SN2 reactions?',
         participants: [
@@ -82,14 +83,15 @@ class GroupChatProvider with ChangeNotifier {
       ),
       QuestionThread(
         id: '3',
-        subject: 'Biology',
+        subject: 'Biobuilders',
         question:
             'What are the stages of mitosis and how do they differ from meiosis?',
         participants: [
           User(
             id: '1',
             name: 'Emma Johnson',
-            avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
+            avatarUrl:
+                'https://randomuser.me/api/portraits/men/22.jpg',
             isOnline: true,
             achievements: ['biology expert'],
             commonGroups: ['Biology 101'],
@@ -134,12 +136,12 @@ class GroupChatProvider with ChangeNotifier {
         ],
         replies: 37,
         lastUpdate: DateTime.now().subtract(const Duration(minutes: 30)),
-        createdBy: '7', // Added createdBy parameter (Lisa Garcia's ID)
+        createdBy: '7',
       ),
       QuestionThread(
         id: '4',
-        subject: 'Physics',
-        question: 'How does quantum entanglement work?',
+        subject: 'What if the apple didn\'t fall?',
+        question: 'How does projectile motion change with increase in height?',
         participants: [
           User(
             id: '10',
@@ -153,7 +155,7 @@ class GroupChatProvider with ChangeNotifier {
         ],
         replies: 3,
         lastUpdate: DateTime.now().subtract(const Duration(days: 1)),
-        createdBy: '10', // Added createdBy parameter (Robert Miller's ID)
+        createdBy: '10',
       ),
     ];
   }

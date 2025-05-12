@@ -76,7 +76,7 @@ class GroupChatsScreen extends StatelessWidget {
                 ),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: 5, // Replace with actual local group chat count
+                    itemCount: 5,
                     itemBuilder: (context, index) {
                       return ListTile(
                         title: Text('Local Group Chat ${index + 1}'),
@@ -84,7 +84,7 @@ class GroupChatsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'User456: Typing...', // Example typing indicator
+                              'User456: Typing...',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,

@@ -588,7 +588,7 @@ class UserAvatarWithBadge extends StatelessWidget {
                 ),
                 child: Icon(
                   _getAchievementIcon(user.achievements[0]),
-                  size: radius * 0.5, // Scale icon size based on radius
+                  size: radius * 0.5,
                   color: Colors.white,
                 ),
               ),

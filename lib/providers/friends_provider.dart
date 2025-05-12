@@ -1,51 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:fluttermoji/fluttermoji.dart';
 import '../models/user.dart';
 
 class FriendsProvider with ChangeNotifier {
-  final List<User> _contacts = [
-    User(
-      id: '1',
-      name: 'Jacobs',
-      isOnline: true,
-      lastSeen: DateTime.now().subtract(const Duration(minutes: 2)),
-      fluttermojiString: '',
-    ),
-    User(
-      id: '2',
-      name: 'Bob',
-      isOnline: false,
-      lastSeen: DateTime.now().subtract(const Duration(hours: 1)),
-      fluttermojiString: '',
-    ),
-    User(
-      id: '3',
-      name: 'Charlie',
-      isOnline: true,
-      lastSeen: DateTime.now(),
-      fluttermojiString: '',
-    ),
-  ];
-
-  final Map<String, List<String>> _userGroups = {
-    '1': ['Physics Channel', 'Math Club'],
-    '2': ['Physics Channel', 'Chemistry Chat'],
-    '3': ['None'],
-  };
-
-  final Set<String> _typingUsers = {'1'};
-
+  List<User> _contacts = [];
   String? _suggestedGroup;
 
   List<User> get contacts => _contacts;
-  List<String> getUserGroups(String userId) => _userGroups[userId] ?? [];
-  bool isTyping(String userId) => _typingUsers.contains(userId);
+  String? get suggestedGroup => _suggestedGroup;
 
-  // Set the suggested group for the current user (call this from your logic)
-  void setSuggestedGroup(String? group) {
-    _suggestedGroup = group;
+  bool autoJoinGroups = true;
+  bool friendsSeeGroups = true;
+  bool showLastSeen = true;
+  bool allowAIGroups = false;
+
+  FriendsProvider() {
+    _initContacts();
+    _suggestedGroup = 'Biobuilders';
+  }
+
+  Future<void> _initContacts() async {
+    final svg = await FluttermojiFunctions().encodeMySVGtoString();
+    _contacts = [
+      User(
+        id: '1',
+        name: 'Alice',
+        isOnline: true,
+        avatarSvg: svg,
+        avatarUrl: 'https://robohash.org/alice.png?set=set4',
+        commonGroups: ['Amylase Enthusiasts', 'Catalysts Corner'],
+        achievements: ['biology expert'],
+      ),
+      User(
+        id: '2',
+        name: 'Bob',
+        isOnline: false,
+        lastSeen: DateTime.now().subtract(const Duration(minutes: 10)),
+        avatarSvg: svg,
+        avatarUrl: 'https://robohash.org/bob.png?set=set4',
+        commonGroups: [],
+        achievements: ['chemistry helper'],
+      ),
+      User(
+        id: '3',
+        name: 'Charlie',
+        isOnline: true,
+        avatarSvg: svg,
+        avatarUrl: 'https://robohash.org/charlie.png?set=set4',
+        commonGroups: ['Amylase Enthusiasts'],
+        achievements: ['biology enthusiast', 'consistent learner'],
+      ),
+    ];
     notifyListeners();
   }
 
-  // Get the suggested group for the current user
-  String? get suggestedGroup => _suggestedGroup;
+  void dismissSuggestedGroup() {
+    _suggestedGroup = null;
+    notifyListeners();
+  }
+
+  void toggleAutoJoinGroups(bool value) {
+    autoJoinGroups = value;
+    notifyListeners();
+  }
+
+  void toggleFriendsSeeGroups(bool value) {
+    friendsSeeGroups = value;
+    notifyListeners();
+  }
+
+  void toggleShowLastSeen(bool value) {
+    showLastSeen = value;
+    notifyListeners();
+  }
+
+  void toggleAllowAIGroups(bool value) {
+    allowAIGroups = value;
+    notifyListeners();
+  }
 }

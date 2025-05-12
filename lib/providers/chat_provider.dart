@@ -1,3 +1,5 @@
+import '../models/question_thread.dart';
+
 import 'package:flutter/material.dart';
 import 'package:fluttermoji/fluttermoji.dart';
 import '../models/chat_message.dart';
@@ -6,83 +8,92 @@ import '../widgets/date_separator.dart';
 
 class ChatProvider with ChangeNotifier {
   User? _currentUser;
-  User? _otherUser;
   List<ChatMessage>? _messages;
   bool _isLoading = true;
+
+  final Map<String, User> _users = {}; // store all users
+  String? _currentChatUserId; // track the current chat user
 
   ChatProvider() {
     _initUsers();
   }
 
   Future<void> _initUsers() async {
-    final svg = await FluttermojiFunctions().encodeMySVGtoString();
+    // get Fluttermoji SVG for avatar
+    String? svg;
+    try {
+      svg = await FluttermojiFunctions().encodeMySVGtoString();
+    } catch (e) {
+      // handle error if Fluttermoji is not properly initialized
+      print('Error initializing Fluttermoji: $e');
+      svg = null;
+    }
+
     _currentUser = User(
       id: 'currentUser',
       name: 'Me',
-      fluttermojiString: svg,
+      avatarSvg: svg,
       isOnline: true,
+      avatarUrl: 'https://robohash.org/currentUser.png?set=set4',
     );
-    _otherUser = User(
-      id: 'user2',
-      name: 'Friend',
-      fluttermojiString: svg,
-      lastSeen: DateTime.now().subtract(const Duration(minutes: 10)),
-      isOnline: false,
-    );
-    // Sample messages with varying dates for testing DateSeparator
+
+    // a list of users with different online statuses
+    for (int i = 1; i <= 3; i++) {
+      _users['user$i'] = User(
+        id: 'user$i',
+        name: 'User $i',
+        avatarSvg: svg,
+        lastSeen: DateTime.now().subtract(Duration(minutes: i * 5)),
+        isOnline: i % 2 == 0,
+        avatarUrl: 'https://robohash.org/user$i.png?set=set4',
+        // Add some sample achievements and groups for testing
+        achievements:
+            i == 1
+                ? ['biology expert']
+                : i == 2
+                ? ['chemistry helper']
+                : ['math enthusiast'],
+        commonGroups:
+            i == 1
+                ? ['Biology 101', 'Study Group']
+                : i == 2
+                ? ['Chemistry Club']
+                : ['Physics Forum'],
+      );
+    }
+
+    // Set a valid default chat user
+    _currentChatUserId = 'user1';
+
     _messages = [
       ChatMessage(
         id: '0',
-        text: 'Older message from yesterday',
-        timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-        sender: _otherUser!, // use non-null assertion
+        text: 'Hello',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+        sender: _users['user1']!,
+        reactions: ['👍', '❤️'],
       ),
       ChatMessage(
         id: '1',
-        text: 'Hey! How are you?',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-        sender: _otherUser!,
+        text: 'Heyyy, how are you?',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
+        sender: _currentUser!,
+        reactions: ['😂'],
       ),
       ChatMessage(
         id: '2',
-        text: 'I am good, thanks! Preparing for the big test.',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 4)),
-        sender: _currentUser!,
-      ),
-      ChatMessage(
-        id: '3',
-        text: 'Awesome! Which topic are you focusing on today?',
+        text: 'I am doing great, thanks for asking!',
         timestamp: DateTime.now().subtract(const Duration(minutes: 3)),
-        sender: _otherUser!,
-      ),
-      ChatMessage(
-        id: '4',
-        text: 'Physics, specifically kinematics.',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
-        sender: _currentUser!,
-      ),
-      ChatMessage(
-        id: '5',
-        text:
-            'Oh, cool! I just finished that. Let me know if you need help with anything.',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
-        sender: _otherUser!,
-      ),
-      ChatMessage(
-        id: '6',
-        text: 'Message from two days ago',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
-        sender: _currentUser!,
+        sender: _users['user1']!,
+        reactions: ['😊'],
       ),
     ];
-    _messages!.sort(
-      (a, b) => a.timestamp.compareTo(b.timestamp),
-    ); // Ensure messages are sorted by time
+
+    _messages!.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     _isLoading = false;
     notifyListeners();
   }
 
-  // Updated to return a list of dynamic to include ChatMessage and DateSeparator
   List<dynamic> get messagesWithSeparators {
     if (_messages == null || _messages!.isEmpty) return [];
 
@@ -101,12 +112,12 @@ class ChatProvider with ChangeNotifier {
       }
       items.add(message);
     }
-    return items.reversed
-        .toList(); // Reverse to show latest messages and their dates at the bottom
+    return items.toList();
   }
 
   User? get currentUser => _currentUser;
-  User? get otherUser => _otherUser;
+  User? get otherUser =>
+      _currentChatUserId != null ? _users[_currentChatUserId] : null;
   bool get isLoading => _isLoading;
 
   void addMessage(String text) {
@@ -121,4 +132,163 @@ class ChatProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void addReaction(String messageId, String reaction) {
+    final messageIndex = _messages?.indexWhere((msg) => msg.id == messageId);
+    if (messageIndex != null && messageIndex >= 0) {
+      final message = _messages![messageIndex];
+      List<String> reactions = message.reactions?.toList() ?? [];
+
+      // Toggle the reaction (add if not present, remove if already there)
+      if (reactions.contains(reaction)) {
+        reactions.remove(reaction);
+      } else {
+        reactions.add(reaction);
+      }
+
+      // a new message with updated reactions
+      final updatedMessage = ChatMessage(
+        id: message.id,
+        text: message.text,
+        timestamp: message.timestamp,
+        sender: message.sender,
+        reactions: reactions,
+        isTyping: message.isTyping,
+      );
+
+      _messages![messageIndex] = updatedMessage;
+      notifyListeners();
+    }
+  }
+
+  // Add method to get all users
+  List<User> get allUsers => _users.values.toList();
+
+  // Set current chat user
+  void setCurrentChatUser(String userId) {
+    if (_users.containsKey(userId)) {
+      _currentChatUserId = userId;
+      notifyListeners();
+    }
+  }
+
+  // Get user by ID
+  User? getUserById(String id) {
+    if (id == 'currentUser') return _currentUser;
+    return _users[id];
+  }
+
+  // Method to create a group message/question thread
+  void createGroupMessage(String subjectName, String questionText) {
+    if (questionText.isEmpty || subjectName.isEmpty || _currentUser == null) {
+      return;
+    }
+
+    // Generate a unique ID for the thread
+    final threadId = 'thread_${DateTime.now().millisecondsSinceEpoch}';
+
+    // create initial participants list with current user
+    final List<User> initialParticipants = [_currentUser!];
+
+    // random users who might be interested in this subject
+    final potentialParticipants =
+        _users.values.where((user) {
+          // Check if user's achievements or common groups relate to the subject
+          return user.achievements.any(
+                (a) => a.toLowerCase().contains(subjectName.toLowerCase()),
+              ) ||
+              user.commonGroups.any(
+                (g) => g.toLowerCase().contains(subjectName.toLowerCase()),
+              );
+        }).toList();
+
+    // adding up to 2 related users
+    if (potentialParticipants.isNotEmpty) {
+      potentialParticipants.shuffle();
+      final numToAdd =
+          potentialParticipants.length > 2 ? 2 : potentialParticipants.length;
+      initialParticipants.addAll(potentialParticipants.take(numToAdd));
+    }
+
+    // create a the question thread
+    final newThread = QuestionThread(
+      id: threadId,
+      subject: subjectName,
+      question: questionText,
+      participants: initialParticipants,
+      replies: 0,
+      lastUpdate: DateTime.now(),
+      createdBy: _currentUser!.id,
+    );
+
+    // Add the thread to the list (assuming you have a list to store threads)
+    _addQuestionThread(newThread);
+
+    // Create an initial message in this thread
+    _addThreadMessage(
+      threadId: threadId,
+      text: questionText,
+      sender: _currentUser!,
+    );
+
+    // Notify about the new thread creation
+    notifyListeners();
+  }
+
+  // Helper method to add a question thread
+  void _addQuestionThread(QuestionThread thread) {
+    // Initialize _questionThreads list if it doesn't exist
+    _questionThreads ??= [];
+
+    // Add the new thread
+    _questionThreads!.add(thread);
+
+    // Sort threads by last update time
+    _questionThreads!.sort((a, b) => b.lastUpdate.compareTo(a.lastUpdate));
+  }
+
+  // Helper method to add a message to a thread
+  void _addThreadMessage({
+    required String threadId,
+    required String text,
+    required User sender,
+  }) {
+    // Initialize _threadMessages map if it doesn't exist
+    _threadMessages ??= {};
+
+    // Initialize the thread's message list if it doesn't exist
+    _threadMessages![threadId] ??= [];
+
+    // Create the new message
+    final newMessage = ChatMessage(
+      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      text: text,
+      timestamp: DateTime.now(),
+      sender: sender,
+      threadId: threadId,
+    );
+
+    // Add message to the thread
+    _threadMessages![threadId]!.add(newMessage);
+
+    // Update thread's last message timestamp and reply count
+    final threadIndex =
+        _questionThreads?.indexWhere((t) => t.id == threadId) ?? -1;
+    if (threadIndex >= 0) {
+      final currentThread = _questionThreads![threadIndex];
+      _questionThreads![threadIndex] = currentThread.copyWith(
+        lastUpdate: DateTime.now(),
+        replies: currentThread.replies + 1,
+      );
+    }
+  }
+
+  // Add these properties to store question threads and their messages
+  List<QuestionThread>? _questionThreads;
+  Map<String, List<ChatMessage>>? _threadMessages;
+
+  // Getters for the new properties
+  List<QuestionThread> get questionThreads => _questionThreads ?? [];
+  List<ChatMessage> getThreadMessages(String threadId) =>
+      _threadMessages?[threadId] ?? [];
 }

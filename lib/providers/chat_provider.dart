@@ -14,6 +14,16 @@ class ChatProvider with ChangeNotifier {
   final Map<String, User> _users = {}; // store all users
   String? _currentChatUserId; // track the current chat user
 
+  // Pagination parameters
+  static const int messagesPerPage = 20;
+  int _currentPage = 1;
+  bool _hasMoreMessages = true;
+
+  // Getter for pagination status
+  bool get hasMoreMessages => _hasMoreMessages;
+  bool _isLoadingMore = false;
+  bool get isLoadingMore => _isLoadingMore;
+
   ChatProvider() {
     _initUsers();
   }
@@ -94,6 +104,9 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns messages with date separators interleaved
+  /// This creates a list that contains both ChatMessage objects and DateSeparator objects
+  /// to display in the ListView with proper date grouping
   List<dynamic> get messagesWithSeparators {
     if (_messages == null || _messages!.isEmpty) return [];
 
@@ -164,16 +177,29 @@ class ChatProvider with ChangeNotifier {
   // Add method to get all users
   List<User> get allUsers => _users.values.toList();
 
-  // Add a user to the users map if they don't exist already
+  /// Adds a user to the users map if they don't exist already
+  /// This ensures we have the user's information available when needed
+  ///
+  /// @param user The user object to add to the chat provider's user map
+  /// @throws ArgumentError if the user object is invalid (has empty id)
   void addUserIfNeeded(User user) {
+    // Validate input to prevent data corruption
+    if (user.id.isEmpty) {
+      throw ArgumentError('Cannot add user with empty id');
+    }
+
+    // Only add if the user doesn't exist yet
     if (!_users.containsKey(user.id)) {
       _users[user.id] = user;
 
-      // Initialize messages for this user if needed
+      // Initialize the message list for this user if they're the current chat user
       if (_currentChatUserId == user.id &&
           (_messages == null || _messages!.isEmpty)) {
         _messages = [];
       }
+    } else {
+      // Update user information if they already exist (to keep online status etc. updated)
+      _users[user.id] = user;
     }
   }
 
@@ -184,6 +210,8 @@ class ChatProvider with ChangeNotifier {
     if (_messages == null || _messages!.isEmpty) {
       _messages = [];
     }
+    // Reset pagination when changing chat users
+    _resetPagination();
     notifyListeners();
   }
 
@@ -306,4 +334,72 @@ class ChatProvider with ChangeNotifier {
   List<QuestionThread> get questionThreads => _questionThreads ?? [];
   List<ChatMessage> getThreadMessages(String threadId) =>
       _threadMessages?[threadId] ?? [];
+
+  // Load more messages (pagination)
+  Future<void> loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages) return;
+
+    try {
+      _isLoadingMore = true;
+      notifyListeners();
+
+      // Simulate network delay for loading older messages
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // In a real app, load messages from API with pagination parameters
+      final oldestMessageDate =
+          _messages?.isNotEmpty == true
+              ? _messages!.first.timestamp
+              : DateTime.now();
+
+      // Simulating older messages for demonstration
+      List<ChatMessage> olderMessages = [];
+
+      // Create some mock older messages for pagination demo
+      for (int i = 1; i <= messagesPerPage; i++) {
+        final messageDate = oldestMessageDate.subtract(
+          Duration(days: (_currentPage > 1) ? _currentPage - 1 : 0, hours: i),
+        );
+
+        // Alternate between current user and other user
+        final sender = i % 2 == 0 ? _currentUser! : _users[_currentChatUserId]!;
+
+        olderMessages.add(
+          ChatMessage(
+            id: 'old_${_currentPage}_$i',
+            text: 'This is an older message #$i from page $_currentPage',
+            timestamp: messageDate,
+            sender: sender,
+            reactions: i % 5 == 0 ? ['👍'] : null,
+          ),
+        );
+      }
+
+      // Stop pagination after a few pages in this demo
+      if (_currentPage >= 3) {
+        _hasMoreMessages = false;
+      }
+
+      // Add older messages at the beginning of the list
+      if (olderMessages.isNotEmpty) {
+        // Sort to ensure correct order
+        olderMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        _messages = [...olderMessages, ..._messages!];
+        _currentPage++;
+      } else {
+        _hasMoreMessages = false;
+      }
+    } catch (e) {
+      print('Error loading more messages: $e');
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  // Reset pagination when changing users
+  void _resetPagination() {
+    _currentPage = 1;
+    _hasMoreMessages = true;
+  }
 }

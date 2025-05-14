@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/chat_provider.dart';
 import '../models/user.dart';
 import '../models/chat_message.dart';
-import 'group_chats_screen.dart';
 import '../widgets/chat_message_list_item.dart';
 
 final Color backgroundColor = const Color(0xFF101014); // Dark background
@@ -33,6 +30,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  bool _isFirstLoad = true;
+
   @override
   void initState() {
     super.initState();
@@ -46,9 +45,17 @@ class _ChatScreenState extends State<ChatScreen> {
       // Set it as the current chat user
       chatProvider.setCurrentChatUser(widget.recipient.id);
 
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      }
+      // Wait a bit for the messages to load and scroll to bottom
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+        _isFirstLoad = false;
+      });
     });
   }
 
@@ -60,26 +67,79 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<ChatProvider>(context);
-    if (chatProvider.isLoading ||
-        chatProvider.currentUser == null ||
-        chatProvider.otherUser == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    // Handle loading state
+    if (chatProvider.isLoading) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: backgroundColor,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: Colors.white,
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.recipient.name,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+          ),
+        ),
+      );
+    }
+
+    // Handle error state when users are not properly loaded
+    if (chatProvider.currentUser == null || chatProvider.otherUser == null) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: AppBar(
+          backgroundColor: backgroundColor,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            color: Colors.white,
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.recipient.name,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.white60),
+              SizedBox(height: 16),
+              Text(
+                "Couldn't load chat",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              SizedBox(height: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+                onPressed: () {
+                  // Try to reload the data
+                  final chatProvider = Provider.of<ChatProvider>(
+                    context,
+                    listen: false,
+                  );
+                  chatProvider.addUserIfNeeded(widget.recipient);
+                  chatProvider.setCurrentChatUser(widget.recipient.id);
+                },
+                child: Text("Try Again"),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     final User recipientUser = widget.recipient;
-    String lastSeenStatus = 'Offline';
-    if (recipientUser.isOnline) {
-      lastSeenStatus = 'Online';
-    } else if (recipientUser.lastSeen != null) {
-      final now = DateTime.now();
-      final difference = now.difference(recipientUser.lastSeen!);
-      if (difference.inDays > 0) {
-        lastSeenStatus =
-            'Last seen ${DateFormat.yMd().add_jm().format(recipientUser.lastSeen!)}';
-      } else {
-        lastSeenStatus =
-            'Last seen ${DateFormat.jm().format(recipientUser.lastSeen!)}';
-      }
-    }
     return Scaffold(
       backgroundColor: backgroundColor, // Dark background
       appBar: AppBar(
@@ -147,58 +207,123 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // Date separator
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: const Center(
-              child: Text(
-                'Today',
-                style: TextStyle(color: Colors.white60, fontSize: 12),
-              ),
-            ),
-          ),
-
-          // Chat messages
+          // Chat messages with pagination
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8.0),
-              itemCount: chatProvider.messagesWithSeparators.length,
-              itemBuilder: (context, index) {
-                final item = chatProvider.messagesWithSeparators[index];
-                if (item is ChatMessage) {
-                  return GestureDetector(
-                    onLongPress: () {
-                      _showReactionOptions(context, item.id);
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification scrollInfo) {
+                if (!_isFirstLoad &&
+                    scrollInfo is ScrollUpdateNotification &&
+                    scrollInfo.metrics.pixels <=
+                        scrollInfo.metrics.minScrollExtent &&
+                    !chatProvider.isLoadingMore &&
+                    chatProvider.hasMoreMessages) {
+                  // When user scrolls to the top, load more messages
+                  chatProvider.loadMoreMessages();
+                }
+                return false;
+              },
+              child: Stack(
+                children: [
+                  ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount:
+                        chatProvider.messagesWithSeparators.length +
+                        (chatProvider.hasMoreMessages ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      // Show loading indicator at the top when loading more messages
+                      if (index == 0 && chatProvider.hasMoreMessages) {
+                        return Container(
+                          height: 50,
+                          alignment: Alignment.center,
+                          child:
+                              chatProvider.isLoadingMore
+                                  ? SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        accentColor,
+                                      ),
+                                    ),
+                                  )
+                                  : Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      'Pull to load more messages',
+                                      style: TextStyle(
+                                        color: Colors.white60,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                        );
+                      }
+
+                      // Adjust index for the actual message item
+                      final actualIndex =
+                          chatProvider.hasMoreMessages ? index - 1 : index;
+                      if (actualIndex < 0 ||
+                          actualIndex >=
+                              chatProvider.messagesWithSeparators.length) {
+                        return SizedBox.shrink();
+                      }
+
+                      final item =
+                          chatProvider.messagesWithSeparators[actualIndex];
+                      if (item is ChatMessage) {
+                        return GestureDetector(
+                          onLongPress: () {
+                            _showReactionOptions(context, item.id);
+                          },
+                          child: ChatMessageListItem(
+                            message: item,
+                            isCurrentUser:
+                                item.sender.id == chatProvider.currentUser!.id,
+                          ),
+                        );
+                      } else {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.white54)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                ),
+                                child: Text(
+                                  item.toString(),
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.white54)),
+                            ],
+                          ),
+                        );
+                      }
                     },
-                    child: ChatMessageListItem(
-                      message: item,
-                      isCurrentUser:
-                          item.sender.id == chatProvider.currentUser!.id,
-                    ),
-                  );
-                } else {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      children: [
-                        const Expanded(child: Divider(color: Colors.white54)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            item.toString(),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
+                  ),
+
+                  // Full-screen loading indicator when initially loading more messages
+                  if (chatProvider.isLoadingMore &&
+                      chatProvider.messagesWithSeparators.isEmpty)
+                    Container(
+                      color: backgroundColor.withOpacity(0.7),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            accentColor,
                           ),
                         ),
-                        const Expanded(child: Divider(color: Colors.white54)),
-                      ],
+                      ),
                     ),
-                  );
-                }
-              },
+                ],
+              ),
             ),
           ),
 

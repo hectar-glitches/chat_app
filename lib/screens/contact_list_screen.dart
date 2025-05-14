@@ -21,6 +21,18 @@ final Color correctColor = const Color(0xFF4CAF50); // Green for correct answers
 class ContactListScreen extends StatelessWidget {
   const ContactListScreen({super.key});
 
+  // Helper method to create a fallback widget when avatar fails to load
+  Widget _buildAvatarFallback(User user) {
+    return Text(
+      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final friendsProvider = Provider.of<FriendsProvider>(context);
@@ -246,25 +258,26 @@ class ContactListScreen extends StatelessWidget {
                   leading: CircleAvatar(
                     radius: 24,
                     backgroundColor: Colors.grey.shade800,
-                    // Only use backgroundImage if we have a valid avatarSvg or avatarUrl
                     backgroundImage:
                         user.avatarUrl.isNotEmpty
                             ? NetworkImage(user.avatarUrl)
                             : null,
-                    // Always show text if avatarSvg is null, which will be used as fallback
+                    onBackgroundImageError:
+                        user.avatarUrl.isNotEmpty
+                            ? (_, __) {
+                              // Silently handle image loading errors
+                            }
+                            : null,
                     child:
-                        user.avatarSvg != null
-                            ? SvgPicture.string(user.avatarSvg!)
-                            : Text(
-                              user.name.isNotEmpty
-                                  ? user.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                        (user.avatarUrl.isEmpty || user.avatarSvg != null)
+                            ? (user.avatarSvg != null
+                                ? SvgPicture.string(
+                                  user.avatarSvg!,
+                                  placeholderBuilder:
+                                      (context) => _buildAvatarFallback(user),
+                                )
+                                : _buildAvatarFallback(user))
+                            : null,
                   ),
                   title: Text(
                     user.name,

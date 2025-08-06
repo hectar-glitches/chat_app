@@ -1,6 +1,6 @@
 # Academic Chat App
 
-An educational chat platform designed to facilitate direct messaging and group discussions around academic subjects.
+A chat platform designed to facilitate direct messaging and group discussions around academic subjects. 
 
 ## Features
 

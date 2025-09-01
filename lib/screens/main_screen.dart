@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'contact_list_screen.dart';
+import 'group_chats_screen.dart';
 import 'user_settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -12,50 +15,53 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  // The screens to display when a navigation item is selected
   final List<Widget> _screens = [
     const ContactListScreen(),
+    const GroupChatsScreen(),
     const UserSettingsScreen(),
+  ];
+
+  // The titles for each screen
+  final List<String> _titles = [
+    'Chats',
+    'Groups',
+    'Settings',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage(
-                    'assets/images/background.png',
-                  ),
-                  fit: BoxFit.cover, // Ensures the image covers the screen
-                  alignment: Alignment.center, // Centers the image
-                ),
-              ),
-            ),
-          ),
-          _screens[_selectedIndex],
-        ],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF1A3636),
-        selectedItemColor: const Color(0xFFFFD700), // Gold for active tab
-        unselectedItemColor: Colors.white70,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
           setState(() {
             _selectedIndex = index;
           });
         },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Chats',
+        backgroundColor: theme.colorScheme.surface,
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.chat_outlined),
+            selectedIcon: const Icon(Icons.chat),
+            label: _titles[0],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
+          NavigationDestination(
+            icon: const Icon(Icons.group_outlined),
+            selectedIcon: const Icon(Icons.group),
+            label: _titles[1],
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: _titles[2],
           ),
         ],
       ),

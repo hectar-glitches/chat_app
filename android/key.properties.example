@@ -1,0 +1,11 @@
+# This file contains the security properties for signing your app
+# Store this file in a secure location and DO NOT commit it to version control
+
+# Path to the keystore file
+storeFile=../path/to/your/keystore.jks
+# Password for the keystore
+storePassword=your_keystore_password
+# Alias name for the key
+keyAlias=your_key_alias
+# Password for the key
+keyPassword=your_key_password

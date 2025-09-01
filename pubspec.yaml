@@ -34,12 +34,28 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  provider: ^6.0.0 # Add provider
-  intl: ^0.19.0 # Add intl
-  fluttermoji: ^1.0.2 # Add fluttermoji dependency
-  flutter_svg: ^2.0.10
-  getwidget: ^6.0.0
-  dash_chat_2: ^0.0.21
+  provider: ^6.0.0 # State management
+  intl: ^0.19.0 # Internationalization
+  fluttermoji: ^1.0.2 # Avatar customization
+  flutter_svg: ^2.0.10 # SVG support
+  getwidget: ^6.0.0 # UI components
+  dash_chat_2: ^0.0.21 # Chat UI components
+  
+  # Firebase packages for production app
+  firebase_core: ^2.25.4
+  firebase_auth: ^4.17.4
+  cloud_firestore: ^4.15.4
+  firebase_storage: ^11.6.5
+  firebase_messaging: ^14.7.15
+  firebase_crashlytics: ^3.4.15
+  
+  # Additional useful packages
+  cached_network_image: ^3.3.1 # Image caching
+  shared_preferences: ^2.2.2 # Local storage
+  connectivity_plus: ^5.0.2 # Network connectivity
+  flutter_local_notifications: ^16.3.2 # Local notifications
+  image_picker: ^1.0.7 # Image picking
+  flutter_native_splash: ^2.3.10 # Splash screen
 
 dev_dependencies:
   flutter_test:
